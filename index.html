@@ -1,0 +1,1079 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sifr. صفر</title>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #0d0d0d;
+      --bg-darker: #080808;
+      --text-primary: #e0e0e0;
+      --text-secondary: #999999;
+      --accent-encrypt: #4dabf7;
+      --accent-decrypt: #f783ac;
+      --node-encrypt: rgba(77, 171, 247, 0.3);
+      --node-decrypt: rgba(247, 131, 172, 0.3);
+      --line-encrypt: rgba(77, 171, 247, 0.15);
+      --line-decrypt: rgba(247, 131, 172, 0.15);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-primary);
+      font-family: 'IBM Plex Mono', monospace;
+      overflow: hidden;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      font-weight: 500;
+    }
+
+    body.decrypt {
+      background-color: var(--bg-darker);
+    }
+
+    canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      z-index: -1;
+      width: 100%;
+      height: 100%;
+    }
+
+    header {
+      padding: 1.2rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .title {
+      font-size: 1.8rem;
+      letter-spacing: 0.5px;
+      display: flex;
+      align-items: baseline;
+    }
+
+    .title span {
+      font-size: 1rem;
+      opacity: 0.8;
+      margin-left: 0.5rem;
+      font-weight: normal;
+    }
+
+    .mode-toggle {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .toggle-labels {
+      display: flex;
+      gap: 1.5rem;
+    }
+
+    .toggle-label {
+      user-select: none;
+      font-size: 1.2rem;
+      position: relative;
+      cursor: pointer;
+    }
+
+    .toggle-label.active {
+      color: var(--accent-encrypt);
+    }
+
+    body.decrypt .toggle-label.active {
+      color: var(--accent-decrypt);
+    }
+
+    .toggle-switch {
+      position: relative;
+      width: 70px;
+      height: 32px;
+      background: #222;
+      border-radius: 16px;
+      cursor: pointer;
+      overflow: hidden;
+      box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.4);
+    }
+
+    .toggle-slider {
+      position: absolute;
+      width: 28px;
+      height: 28px;
+      background: var(--accent-encrypt);
+      border-radius: 50%;
+      top: 2px;
+      left: 2px;
+      transition: all 0.3s cubic-bezier(0.18, 0.89, 0.35, 1.15);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+    }
+
+    body.decrypt .toggle-slider {
+      left: calc(100% - 30px);
+      background: var(--accent-decrypt);
+    }
+
+    .main-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+      position: relative;
+    }
+
+    .input-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2rem;
+      width: 100%;
+      max-width: 600px;
+      position: relative;
+    }
+
+    .input-group {
+      display: flex;
+      width: 100%;
+      position: relative;
+    }
+
+    .message-input {
+      flex: 1;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 0.9rem 1.2rem;
+      color: var(--text-primary);
+      font-family: inherit;
+      font-size: 1rem;
+      border-radius: 4px 0 0 4px;
+      transition: all 0.2s ease;
+    }
+
+    .message-input::placeholder {
+      color: var(--text-secondary);
+    }
+
+    .message-input:focus {
+      outline: none;
+      border-color: var(--accent-encrypt);
+    }
+
+    body.decrypt .message-input:focus {
+      border-color: var(--accent-decrypt);
+    }
+
+    .submit-btn {
+      background: var(--accent-encrypt);
+      border: none;
+      padding: 0 1.2rem;
+      color: white;
+      font-family: inherit;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      border-radius: 0 4px 4px 0;
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+    }
+
+    body.decrypt .submit-btn {
+      background: var(--accent-decrypt);
+    }
+
+    .submit-btn:hover {
+      filter: brightness(1.1);
+    }
+
+    .submit-btn:active {
+      transform: scale(0.98);
+    }
+
+    .submit-btn::after {
+      content: "↓";
+      font-size: 0.9rem;
+    }
+
+    .ciphers-container {
+      position: absolute;
+      top: calc(100% + 0.8rem);
+      width: 100%;
+      background: rgba(20, 20, 20, 0.98);
+      border-radius: 4px;
+      padding: 0.8rem;
+      display: none;
+      flex-direction: column;
+      gap: 0.4rem;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+      z-index: 10;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .ciphers-container.visible {
+      display: flex;
+    }
+
+    .cipher-option {
+      padding: 0.7rem 0.9rem;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 2px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      font-size: 0.95rem;
+    }
+
+    .cipher-option:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    .result-container {
+      width: 100%;
+      background: rgba(20, 20, 20, 0.98);
+      border-radius: 4px;
+      padding: 1.2rem;
+      display: none;
+      flex-direction: column;
+      gap: 0.8rem;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      position: relative;
+    }
+
+    .result-container.visible {
+      display: flex;
+    }
+
+    .result-text {
+      font-size: 1rem;
+      line-height: 1.5;
+      word-break: break-word;
+    }
+
+    .copy-btn {
+      position: absolute;
+      right: 1.2rem;
+      bottom: 1.2rem;
+      background: rgba(255, 255, 255, 0.08);
+      border: none;
+      padding: 0.4rem 0.8rem;
+      color: var(--text-primary);
+      font-family: inherit;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      border-radius: 3px;
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+    }
+
+    .copy-btn:hover {
+      background: rgba(255, 255, 255, 0.15);
+    }
+
+    .copy-btn:active {
+      transform: scale(0.96);
+    }
+
+    .unstable-appear {
+      animation: 
+        unstable-shake 0.4s steps(2) forwards,
+        unstable-flicker 0.4s steps(3) forwards;
+    }
+
+    .unstable-disappear {
+      animation: 
+        unstable-shake 0.3s steps(2) reverse forwards,
+        unstable-flicker 0.3s steps(3) reverse forwards;
+    }
+
+    @keyframes unstable-shake {
+      0% { transform: translate(0); }
+      20% { transform: translate(calc(5px * var(--shake-mod, 1)), calc(-3px * var(--shake-mod, 1))); }
+      40% { transform: translate(calc(-4px * var(--shake-mod, 1)), calc(2px * var(--shake-mod, 1))); }
+      60% { transform: translate(calc(3px * var(--shake-mod, 1)), calc(-5px * var(--shake-mod, 1))); }
+      80% { transform: translate(calc(-2px * var(--shake-mod, 1)), calc(4px * var(--shake-mod, 1))); }
+      100% { transform: translate(0); }
+    }
+
+    @keyframes unstable-flicker {
+      0%, 35%, 65%, 100% { opacity: 1; }
+      15%, 50%, 85% { opacity: calc(0.3 * var(--flicker-mod, 1)); }
+      25%, 75% { opacity: calc(0.7 * var(--flicker-mod, 1)); }
+    }
+
+    .unstable-glitch {
+      animation: unstable-glitch 0.15s steps(2) forwards;
+    }
+
+    @keyframes unstable-glitch {
+      0% { transform: translate(0) scale(1); }
+      25% { transform: translate(calc(-5px * var(--glitch-mod-x, 1)), calc(3px * var(--glitch-mod-y, 1))) scale(0.98); }
+      50% { transform: translate(calc(4px * var(--glitch-mod-x, 1)), calc(-2px * var(--glitch-mod-y, 1))) scale(1.02); }
+      75% { transform: translate(calc(2px * var(--glitch-mod-x, 1)), calc(6px * var(--glitch-mod-y, 1))) scale(0.99); }
+      100% { transform: translate(0) scale(1); }
+    }
+
+    .unstable-cut {
+      position: relative;
+      overflow: hidden;
+    }
+
+    .unstable-cut::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: calc(50% - var(--cut-amount, 1px));
+      background: inherit;
+      z-index: 2;
+    }
+
+    .unstable-cut::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: calc(50% - var(--cut-amount, 1px));
+      background: inherit;
+      z-index: 2;
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 1200px) {
+      :root {
+        --node-count: 600;
+        --max-distance: 100;
+      }
+    }
+
+    @media (max-width: 992px) {
+      :root {
+        --node-count: 500;
+        --max-distance: 90;
+      }
+      
+      header {
+        padding: 1rem 1.5rem;
+      }
+      
+      .title {
+        font-size: 1.6rem;
+      }
+      
+      .toggle-labels {
+        gap: 1.2rem;
+      }
+      
+      .toggle-label {
+        font-size: 1.1rem;
+      }
+      
+      .toggle-switch {
+        width: 65px;
+        height: 30px;
+      }
+      
+      .toggle-slider {
+        width: 26px;
+        height: 26px;
+      }
+      
+      .main-container {
+        padding: 1.5rem;
+      }
+      
+      .input-container {
+        gap: 1.5rem;
+      }
+      
+      .message-input, .submit-btn {
+        padding: 0.8rem 1.1rem;
+        font-size: 0.95rem;
+      }
+    }
+
+    @media (max-width: 768px) {
+      :root {
+        --node-count: 400;
+        --max-distance: 80;
+      }
+      
+      header {
+        padding: 0.8rem 1.2rem;
+      }
+      
+      .title {
+        font-size: 1.4rem;
+      }
+      
+      .title span {
+        font-size: 0.9rem;
+      }
+      
+      .mode-toggle {
+        gap: 0.8rem;
+      }
+      
+      .toggle-labels {
+        gap: 1rem;
+      }
+      
+      .toggle-label {
+        font-size: 1rem;
+      }
+      
+      .toggle-switch {
+        width: 60px;
+        height: 28px;
+      }
+      
+      .toggle-slider {
+        width: 24px;
+        height: 24px;
+      }
+      
+      .main-container {
+        padding: 1.2rem;
+      }
+      
+      .input-container {
+        gap: 1.2rem;
+      }
+      
+      .message-input, .submit-btn {
+        padding: 0.7rem 1rem;
+        font-size: 0.9rem;
+      }
+      
+      .submit-btn::after {
+        font-size: 0.8rem;
+      }
+      
+      .ciphers-container {
+        padding: 0.7rem;
+        gap: 0.3rem;
+      }
+      
+      .cipher-option {
+        padding: 0.6rem 0.8rem;
+        font-size: 0.9rem;
+      }
+      
+      .result-container {
+        padding: 1rem;
+      }
+      
+      .result-text {
+        font-size: 0.95rem;
+      }
+      
+      .copy-btn {
+        padding: 0.3rem 0.7rem;
+        font-size: 0.8rem;
+      }
+    }
+
+    @media (max-width: 576px) {
+      :root {
+        --node-count: 300;
+        --max-distance: 70;
+      }
+      
+      header {
+        padding: 0.7rem 1rem;
+        flex-direction: column;
+        gap: 0.8rem;
+        align-items: flex-start;
+      }
+      
+      .title {
+        font-size: 1.3rem;
+      }
+      
+      .title span {
+        font-size: 0.85rem;
+      }
+      
+      .mode-toggle {
+        width: 100%;
+        justify-content: space-between;
+      }
+      
+      .toggle-labels {
+        gap: 0.8rem;
+      }
+      
+      .toggle-label {
+        font-size: 0.95rem;
+      }
+      
+      .toggle-switch {
+        width: 55px;
+        height: 26px;
+      }
+      
+      .toggle-slider {
+        width: 22px;
+        height: 22px;
+      }
+      
+      .main-container {
+        padding: 1rem;
+      }
+      
+      .input-container {
+        gap: 1rem;
+      }
+      
+      .message-input, .submit-btn {
+        padding: 0.65rem 0.9rem;
+        font-size: 0.85rem;
+      }
+      
+      .submit-btn::after {
+        font-size: 0.75rem;
+      }
+      
+      .ciphers-container {
+        padding: 0.6rem;
+      }
+      
+      .cipher-option {
+        padding: 0.5rem 0.7rem;
+        font-size: 0.85rem;
+      }
+      
+      .result-container {
+        padding: 0.9rem;
+      }
+      
+      .result-text {
+        font-size: 0.9rem;
+      }
+      
+      .copy-btn {
+        padding: 0.25rem 0.6rem;
+        font-size: 0.75rem;
+        right: 0.9rem;
+        bottom: 0.9rem;
+      }
+    }
+
+    @media (max-width: 400px) {
+      :root {
+        --node-count: 200;
+        --max-distance: 60;
+      }
+      
+      header {
+        padding: 0.6rem 0.8rem;
+      }
+      
+      .title {
+        font-size: 1.2rem;
+      }
+      
+      .title span {
+        font-size: 0.8rem;
+      }
+      
+      .toggle-labels {
+        gap: 0.6rem;
+      }
+      
+      .toggle-label {
+        font-size: 0.9rem;
+      }
+      
+      .toggle-switch {
+        width: 50px;
+        height: 24px;
+      }
+      
+      .toggle-slider {
+        width: 20px;
+        height: 20px;
+      }
+      
+      .main-container {
+        padding: 0.8rem;
+      }
+      
+      .message-input, .submit-btn {
+        padding: 0.6rem 0.8rem;
+        font-size: 0.8rem;
+      }
+      
+      .submit-btn::after {
+        font-size: 0.7rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="nodes"></canvas>
+  
+  <header>
+    <div class="title">Sifr. <span>صفر</span></div>
+    <div class="mode-toggle">
+      <div class="toggle-labels">
+        <div class="toggle-label active">E</div>
+        <div class="toggle-label">D</div>
+      </div>
+      <div class="toggle-switch" id="toggleSwitch">
+        <div class="toggle-slider"></div>
+      </div>
+    </div>
+  </header>
+  
+  <div class="main-container">
+    <div class="input-container">
+      <div class="input-group">
+        <input type="text" id="messageInput" class="message-input" placeholder="Enter message to encrypt">
+        <button id="submitBtn" class="submit-btn">Enter</button>
+      </div>
+      
+      <div id="ciphersContainer" class="ciphers-container">
+        <div class="cipher-option" data-cipher="caesar">Caesar Cipher</div>
+        <div class="cipher-option" data-cipher="vigenere">Vigenère Cipher</div>
+        <div class="cipher-option" data-cipher="atbash">Atbash Cipher</div>
+        <div class="cipher-option" data-cipher="xor">XOR Cipher</div>
+        <div class="cipher-option" data-cipher="miftah">Miftah Cipher</div>
+      </div>
+      
+      <div id="resultContainer" class="result-container">
+        <div id="resultText" class="result-text"></div>
+        <button id="copyBtn" class="copy-btn">Copy</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('nodes');
+    const ctx = canvas.getContext('2d');
+    
+    // Responsive node count and distances
+    const getNodeCount = () => {
+      if (window.innerWidth >= 1200) return 800;
+      if (window.innerWidth >= 992) return 600;
+      if (window.innerWidth >= 768) return 500;
+      if (window.innerWidth >= 576) return 400;
+      if (window.innerWidth >= 400) return 300;
+      return 200;
+    };
+    
+    const getMaxDistance = () => {
+      if (window.innerWidth >= 1200) return 120;
+      if (window.innerWidth >= 992) return 100;
+      if (window.innerWidth >= 768) return 90;
+      if (window.innerWidth >= 576) return 80;
+      if (window.innerWidth >= 400) return 70;
+      return 60;
+    };
+    
+    const MOUSE_REPULSION_RADIUS = 50;
+    const MOUSE_REPULSION_STRENGTH = -8;
+    const GHOST_MOUSE_SPEED = 3;
+    const GHOST_MOUSE_DIRECTION_CHANGE = 0.02;
+    
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    resizeCanvas();
+    window.addEventListener('resize', () => {
+      resizeCanvas();
+      if (Math.abs(window.innerWidth - lastWindowWidth) > 50 || 
+          Math.abs(window.innerHeight - lastWindowHeight) > 50) {
+        initNodes();
+        lastWindowWidth = window.innerWidth;
+        lastWindowHeight = window.innerHeight;
+      }
+    });
+    
+    let lastWindowWidth = window.innerWidth;
+    let lastWindowHeight = window.innerHeight;
+    
+    class Node {
+      constructor() {
+        this.resetPosition();
+        this.vx = (Math.random() - 0.5) * 0.8;
+        this.vy = (Math.random() - 0.5) * 0.8;
+        this.radius = Math.random() * 2 + 1;
+        this.baseRadius = this.radius;
+        this.repulsion = 0;
+        this.opacity = 0.21 + Math.random() * 0.7;
+      }
+      
+      resetPosition() {
+        this.x = Math.random() * canvas.width;
+        this.y = Math.random() * canvas.height;
+      }
+      
+      update(mouse) {
+        if (Math.random() < 0.0008) {
+          this.resetPosition();
+          return;
+        }
+        
+        this.x += this.vx * 0.5;
+        this.y += this.vy * 0.5;
+
+        const allMice = [mouse, ...ghostMice];
+        let totalRepulsion = 0;
+        for (const m of allMice){
+          if (m.x && m.y) {
+            const dx = this.x - m.x;
+            const dy = this.y - m.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            
+            if (distance < MOUSE_REPULSION_RADIUS) {
+              const repulsion = (MOUSE_REPULSION_RADIUS - distance) / MOUSE_REPULSION_RADIUS;
+              totalRepulsion = Math.max(totalRepulsion, repulsion);
+              const angle = Math.atan2(dy, dx);
+              const force = MOUSE_REPULSION_STRENGTH * repulsion;
+              
+              this.x += Math.cos(angle) * force;
+              this.y += Math.sin(angle) * force;
+              this.radius = this.baseRadius * (1 + this.repulsion * 0.8);
+            }
+          }
+        }
+
+        this.repulsion = totalRepulsion;
+        this.radius = this.baseRadius * (1 + this.repulsion * 0.8);
+        
+        if (this.x < 0 || this.x > canvas.width) this.vx *= -1;
+        if (this.y < 0 || this.y > canvas.height) this.vy *= -1;
+      }
+      
+      draw() {
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+        ctx.fillStyle = document.body.classList.contains('decrypt') 
+          ? `rgba(247, 131, 172, ${this.opacity * (1 + this.repulsion * 0.3)})` 
+          : `rgba(77, 171, 247, ${this.opacity * (1 + this.repulsion * 0.3)})`;
+        ctx.fill();
+      }
+    }
+
+    class GhostMouse {
+      constructor() {
+        this.x = Math.random() * canvas.width;
+        this.y = Math.random() * canvas.height;
+        this.vx = (Math.random() - 0.5) * GHOST_MOUSE_SPEED;
+        this.vy = (Math.random() - 0.5) * GHOST_MOUSE_SPEED;
+      }
+      
+      update() {
+        if (Math.random() < GHOST_MOUSE_DIRECTION_CHANGE) {
+          this.vx = (Math.random() - 0.5) * GHOST_MOUSE_SPEED;
+        }
+        if (Math.random() < GHOST_MOUSE_DIRECTION_CHANGE) {
+          this.vy = (Math.random() - 0.5) * GHOST_MOUSE_SPEED;
+        }
+
+        this.x += this.vx;
+        this.y += this.vy;
+
+        if (this.x < 0) this.x = canvas.width;
+        if (this.x > canvas.width) this.x = 0;
+        if (this.y < 0) this.y = canvas.height;
+        if (this.y > canvas.height) this.y = 0;
+      }
+    }
+    
+    let nodes = [];
+    let ghostMice = [];
+    
+    function initNodes() {
+      nodes = Array(getNodeCount()).fill().map(() => new Node());
+    }
+    
+    initNodes();
+    
+    const mouse = { x: null, y: null };
+    window.addEventListener('mousemove', (e) => {
+      mouse.x = e.clientX;
+      mouse.y = e.clientY;
+    });
+    
+    function drawLines() {
+      const lineColor = document.body.classList.contains('decrypt') 
+        ? 'rgba(247, 131, 172, 0.15)' 
+        : 'rgba(77, 171, 247, 0.15)';
+      
+      if (Math.random() < 0.01) return;
+      
+      const maxDist = getMaxDistance();
+      
+      for (let i = 0; i < nodes.length; i++) {
+        for (let j = i + 1; j < nodes.length; j++) {
+          if (Math.random() < 0.8) continue;
+          
+          const dx = nodes[i].x - nodes[j].x;
+          const dy = nodes[i].y - nodes[j].y;
+          const distance = Math.sqrt(dx * dx + dy * dy);
+          
+          if (distance < maxDist) {
+            const opacity = 0.1 + (1 - distance / maxDist) * 0.2;
+            ctx.beginPath();
+            ctx.moveTo(nodes[i].x, nodes[i].y);
+            ctx.lineTo(nodes[j].x, nodes[j].y);
+            ctx.strokeStyle = lineColor.replace('0.15)', `${opacity})`);
+            ctx.lineWidth = 0.5 + (1 - distance / maxDist) * 1;
+            ctx.stroke();
+          }
+        }
+      }
+    }
+    
+    function animate() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ghostMice.forEach(ghost => ghost.update());
+      
+      nodes.forEach(node => {
+        node.update(mouse);
+        node.draw();
+      });
+      
+      drawLines();
+      
+      if (Math.random() < 0.008) {
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        ctx.strokeStyle = document.body.classList.contains('decrypt') 
+          ? 'rgba(247, 131, 172, 0.3)' 
+          : 'rgba(77, 171, 247, 0.3)';
+        for (let i = 0; i < 15; i++) {
+          ctx.beginPath();
+          ctx.moveTo(
+            Math.random() * canvas.width,
+            Math.random() * canvas.height
+          );
+          ctx.lineTo(
+            Math.random() * canvas.width,
+            Math.random() * canvas.height
+          );
+          ctx.stroke();
+        }
+      }
+      
+      requestAnimationFrame(animate);
+    }
+    
+    animate();
+    
+    const toggleSwitch = document.getElementById('toggleSwitch');
+    const toggleLabels = document.querySelectorAll('.toggle-label');
+    const messageInput = document.getElementById('messageInput');
+    const submitBtn = document.getElementById('submitBtn');
+    const ciphersContainer = document.getElementById('ciphersContainer');
+    const cipherOptions = document.querySelectorAll('.cipher-option');
+    const resultContainer = document.getElementById('resultContainer');
+    const resultText = document.getElementById('resultText');
+    const copyBtn = document.getElementById('copyBtn');
+
+    messageInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+        submitBtn.click();
+    }
+    });
+    
+    let isDecryptMode = false;
+    let selectedCipher = null;
+    
+    function getRandomGlitchModifiers() {
+      return {
+        shake: 0.5 + Math.random() * 1.5,
+        flicker: 0.5 + Math.random() * 1.5,
+        glitchX: Math.random() > 0.5 ? 1 : -1,
+        glitchY: Math.random() > 0.5 ? 1 : -1,
+        cutAmount: Math.floor(1 + Math.random() * 3)
+      };
+    }
+    
+    function applyRandomGlitch(element) {
+      const mods = getRandomGlitchModifiers();
+      
+      element.style.setProperty('--shake-mod', mods.shake);
+      element.style.setProperty('--flicker-mod', mods.flicker);
+      element.style.setProperty('--glitch-mod-x', mods.glitchX);
+      element.style.setProperty('--glitch-mod-y', mods.glitchY);
+      element.style.setProperty('--cut-amount', `${mods.cutAmount}px`);
+      
+      if (Math.random() > 0.7) {
+        element.classList.add('unstable-cut');
+        setTimeout(() => {
+          element.classList.remove('unstable-cut');
+        }, 50);
+      }
+    }
+    
+    toggleSwitch.addEventListener('click', () => {
+      isDecryptMode = !isDecryptMode;
+      
+      applyRandomGlitch(document.body);
+      document.body.classList.add('unstable-glitch');
+      setTimeout(() => {
+        document.body.classList.remove('unstable-glitch');
+        document.body.classList.toggle('decrypt');
+      }, 150);
+
+      toggleLabels.forEach((label, index) => {
+        if ((index === 0 && !isDecryptMode) || (index === 1 && isDecryptMode)) {
+          applyRandomGlitch(label);
+          label.classList.add('active', 'unstable-appear');
+          setTimeout(() => label.classList.remove('unstable-appear'), 400);
+        } else {
+          label.classList.remove('active');
+        }
+      });
+
+      applyRandomGlitch(messageInput);
+      messageInput.classList.add('unstable-disappear');
+      setTimeout(() => {
+        messageInput.placeholder = isDecryptMode 
+          ? 'Enter message to decrypt' 
+          : 'Enter message to encrypt';
+        messageInput.classList.remove('unstable-disappear');
+        messageInput.classList.add('unstable-appear');
+        setTimeout(() => messageInput.classList.remove('unstable-appear'), 400);
+      }, 300);
+    });
+    
+    submitBtn.addEventListener('click', () => {
+      const message = messageInput.value.trim();
+      
+      if (!message) {
+        applyRandomGlitch(messageInput);
+        messageInput.classList.add('unstable-glitch');
+        setTimeout(() => messageInput.classList.remove('unstable-glitch'), 150);
+        return;
+      }
+      
+      applyRandomGlitch(ciphersContainer);
+      ciphersContainer.classList.add('unstable-appear', 'visible');
+      
+      const inputGroup = document.querySelector('.input-group');
+      applyRandomGlitch(inputGroup);
+      inputGroup.classList.add('unstable-glitch');
+      setTimeout(() => {
+        inputGroup.classList.remove('unstable-glitch');
+      }, 150);
+    });
+    
+    cipherOptions.forEach(option => {
+      option.addEventListener('click', () => {
+        selectedCipher = option.dataset.cipher;
+        
+        applyRandomGlitch(option);
+        option.classList.add('unstable-glitch');
+        setTimeout(() => option.classList.remove('unstable-glitch'), 150);
+        
+        applyRandomGlitch(ciphersContainer);
+        ciphersContainer.classList.add('unstable-disappear');
+        setTimeout(() => {
+          ciphersContainer.classList.remove('visible', 'unstable-disappear');
+        }, 300);
+        
+        processMessage(messageInput.value, selectedCipher, isDecryptMode);
+      });
+    });
+    
+    function processMessage(message, cipher, isDecrypt) {
+      resultText.textContent = isDecrypt ? 'Decrypting...' : 'Encrypting...';
+      applyRandomGlitch(resultContainer);
+      resultContainer.classList.add('unstable-appear', 'visible');
+        if (isDecrypt) {
+          if (ghostMice.length > 0){
+            ghostMice.pop();
+          }
+        } else{
+          ghostMice.push(new GhostMouse());
+        }
+
+        const cipherNames = {
+          caesar: 'Caesar Cipher',
+          vigenere: 'Vigenère Cipher',
+          atbash: 'Atbash Cipher',
+          xor: 'XOR Cipher',
+          miftah: 'Miftah Cipher'
+        };
+        
+        fetch(isDecrypt ? '/api/decrypt' : '/api/encrypt', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            text: message, 
+            cipher: cipher.toLowerCase()
+          })
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            applyRandomGlitch(resultContainer);
+            resultContainer.classList.add('unstable-glitch');
+            setTimeout(() => {
+              resultText.textContent = data.result;
+              resultContainer.classList.remove('unstable-glitch');
+            }, 150);
+          } else {
+            throw new Error(data.error || 'Unknown error');
+          }
+        })
+        .catch(error => {
+          resultText.textContent = `Error: ${error.message}`;
+          applyRandomGlitch(resultContainer);
+        });
+      }
+    copyBtn.addEventListener('click', () => {
+      navigator.clipboard.writeText(resultText.textContent)
+        .then(() => {
+          copyBtn.textContent = 'Copied!';
+          applyRandomGlitch(copyBtn);
+          copyBtn.classList.add('unstable-glitch');
+          setTimeout(() => {
+            copyBtn.textContent = 'Copy';
+            copyBtn.classList.remove('unstable-glitch');
+          }, 1000);
+        })
+        .catch(err => {
+          console.error('Failed to copy: ', err);
+        });
+    });
+    
+    window.addEventListener('load', () => {
+      const elements = [
+        document.querySelector('.title'),
+        document.querySelector('.input-group')
+      ];
+      
+      elements.forEach((el, i) => {
+        setTimeout(() => {
+          applyRandomGlitch(el);
+          el.classList.add('unstable-appear');
+          setTimeout(() => el.classList.remove('unstable-appear'), 400);
+        }, i * 300);
+      });
+    });
+  </script>
+</body>
+</html>
